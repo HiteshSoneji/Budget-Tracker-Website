@@ -11,6 +11,9 @@ from django.conf import settings
 from django.http import JsonResponse
 from openpyxl import Workbook
 from openpyxl import load_workbook
+from plotly.offline import plot
+from plotly.graph_objs import Scatter
+
 def register_view(request):
     if request.method == 'POST':
         f_name = request.POST['f_name']
@@ -68,16 +71,46 @@ def home(request):
         u = request.user.username
         u = str(u)
         fn = (settings.MEDIA_ROOT+r'\uploads\Indiv_'+u+'_Data.xlsx')
+        fn = str(fn)
         print(fn)
         workbook = load_workbook(fn)
-        ws = workbook.get_sheet_by_name('expenses')
+        # ws = workbook.get_sheet_by_name('expenses')
+        ws = workbook.active
+        a1 = ws["A1"]
+        # print(a1.value)
         if request.method == 'POST':
-            l = request.POST['q2']
-            print(l)
-            b = request.POST['exp']
-            print(b)
+            l = request.POST['myselection']
+            l = str(l)
+            l = l.lower()
+            # print(l)
+            bal = request.POST['exp']
+            # print(bal)
+            row = 1
+            column = 1
+            for i in range(1,12):
+                ref = ws.cell(row = row, column = i)
+                ref_value = ref.value
+                ref_value = str(ref_value)
+                ref_value = ref_value.lower()
+                # print(ref_value)
+                if ref_value == l:
+                    ws.cell(row = row + 1, column = i, value = bal)
+                    workbook.save(settings.MEDIA_ROOT+r'\uploads\Indiv_'+u+'_Data.xlsx')
+                    break
+                else:
+                    continue
+
     return render(request, 'accounts/home.html')
 
 def logout_view(request):
     auth.logout(request)
     return render(request, 'accounts/login.html')
+
+def graph_view(request):
+    x_data = [0,1,2,3]
+    y_data = [x**2 for x in x_data]
+    plot_div = plot([Scatter(x=x_data, y=y_data,
+                             mode='lines', name='test',
+                             opacity=0.8, marker_color='green')],
+                    output_type='div')
+    return render(request, "accounts/home_graph.html", context={'plot_div': plot_div})
