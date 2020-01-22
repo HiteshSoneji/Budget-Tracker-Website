@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User, auth
 from django.contrib import messages
-from .models import Ind_User
+from .models import Ind_User, Org_User
 from django.core.mail import EmailMessage
 import smtplib
 import xlsxwriter
@@ -16,10 +16,16 @@ from plotly.graph_objs import Scatter
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from fpdf import FPDF
+
+# Splash Screen (First Page)
+
+def splash(request):
+    return render(request, 'accounts/splash.html')
 
 #Individual User Register and excel creation
 
-def register_view(request):
+def ind_register_view(request):
     if request.method == 'POST':
         f_name = request.POST['f_name']
         l_name = request.POST['l_name']
@@ -54,14 +60,14 @@ def register_view(request):
             print("Password does not match")
         return redirect('/')
     else:
-        return render(request, 'accounts/register.html')
+        return render(request, 'accounts/register_ind.html')
 
 #Individual User Login
 
-def login_view(request):
+def ind_login_view(request):
     if request.method=='POST':
-        username = request.POST['username']
-        password1 = request.POST['password1']
+        username = request.POST.get('username', False)
+        password1 = request.POST.get('password1', False)
 
         user = auth.authenticate(username=username, password = password1)
 
@@ -69,10 +75,10 @@ def login_view(request):
             auth.login(request, user)
             return redirect('/')
 
-        else:
-            print("Error")
-            return redirect('')
-    return render(request, 'accounts/login.html')
+        # else:
+        #     print("Error")
+        #     return redirect('/')
+    return render(request, 'accounts/login_ind.html')
 
 # For Budget
 def home(request):
@@ -82,7 +88,10 @@ def home(request):
     if request.user.is_authenticated:
         u = request.user.username
         u = str(u)
-        fn = (settings.MEDIA_ROOT+r'\uploads\Indiv_'+u+'_Data.xlsx')
+        if u == 'hitesh25':
+            fn = (settings.MEDIA_ROOT+r'\uploads\Indiv_'+u+'_Data.xlsx')
+        elif u == 'hitesh98':
+            fn = (settings.MEDIA_ROOT+r'\uploads\Organ_'+u+'_Data_1.xlsx')
         fn = str(fn)
         print(fn)
         workbook = load_workbook(fn)
@@ -93,6 +102,36 @@ def home(request):
 #Fetching the category and amount
 
         if request.method == 'POST':
+            m = request.POST['mymonth']
+            m = str(m)
+            m = m.lower()
+            # print(m)
+            if m == 'none':
+                messages.add_message(request, messages.INFO, 'Error No Month Selected')
+            if m == 'january':
+                s = 1
+            if m == 'february':
+                s = 2
+            if m == 'march':
+                s = 3
+            if m == 'april':
+                s = 4
+            if m == 'may':
+                s = 5
+            if m == 'june':
+                s = 6
+            if m == 'july':
+                s = 7
+            if m == 'august':
+                s = 8
+            if m == 'september':
+                s = 9
+            if m == 'october':
+                s = 10
+            if m == 'november':
+                s = 11
+            if m == 'december':
+                s = 12
             l = request.POST['myselection']
             l = str(l)
             l = l.lower()
@@ -131,7 +170,7 @@ def home(request):
 
 def logout_view(request):
     auth.logout(request)
-    return render(request, 'accounts/login.html')
+    return render(request, 'accounts/splash.html')
 
 def graph_view(request):
 
@@ -267,3 +306,110 @@ def expense_view(request):
     return render(request, 'accounts/home_expenses.html')
 
 # Organisations Register and excel creation
+
+def org_register_view(request):
+
+    if request.method == 'POST':
+        c_name = request.POST['c_name']
+        username = request.POST['username']
+        email = request.POST['email']
+        password1 = request.POST['password1']
+        password2 = request.POST['password2']
+        if password1 == password2:
+            if User.objects.filter(username=username).exists():
+                print("Username Exists")
+            elif User.objects.filter(email=email).exists():
+                print("email Taken")
+            else:
+                user = User.objects.create_user(username=username, password=password1, email=email, first_name = c_name)
+                user.save();
+                s = Org_User(username=username, c_name=c_name, password=password1, email=email)
+                s.save();
+                headers = ['loans', 'utility bills', 'insurance', 'entertainment', 'groceries', 'transportation', 'retirement fund', 'emergency fund', 'childcare and school costs', 'clothing', 'maintainance', 'total']
+
+# Workbook 1 creation
+                wb1 = Workbook()
+                ws1 = wb1.active
+                ws1.title='budget'
+                ws1.append(headers)
+                ws2 = wb1.create_sheet('expenses')
+                ws2.append(headers)
+                u = username
+                u = str(u)
+                wb1.save(settings.MEDIA_ROOT+r'\uploads\Organ_'+u+'_Data_1.xlsx')
+                fn = (r'uploads\Organ_'+u+'_Data_1.xlsx')
+                s.e_file = fn
+                s.save()
+
+#Workbook 2 Creation
+                wb2 = Workbook()
+                ws1 = wb2.active
+                ws1.title='budget'
+                ws1.append(headers)
+                ws2 = wb2.create_sheet('expenses')
+                ws2.append(headers)
+                u = username
+                u = str(u)
+                wb2.save(settings.MEDIA_ROOT+r'\uploads\Organ_'+u+'_Data_2.xlsx')
+                fn = (r'uploads\Organ_'+u+'_Data_2.xlsx')
+                s.e_file = fn
+                s.save()
+
+#Workbook 3 Creation
+                wb3 = Workbook()
+                ws1 = wb3.active
+                ws1.title='budget'
+                ws1.append(headers)
+                ws2 = wb3.create_sheet('expenses')
+                ws2.append(headers)
+                u = username
+                u = str(u)
+                wb3.save(settings.MEDIA_ROOT+r'\uploads\Organ_'+u+'_Data_3.xlsx')
+                fn = (r'uploads\Organ_'+u+'_Data_3.xlsx')
+                s.e_file = fn
+                s.save()
+
+#Workbook 4 Creation
+                wb4 = Workbook()
+                ws1 = wb4.active
+                ws1.title='budget'
+                ws1.append(headers)
+                ws2 = wb4.create_sheet('expenses')
+                ws2.append(headers)
+                u = username
+                u = str(u)
+                wb4.save(settings.MEDIA_ROOT+r'\uploads\Organ_'+u+'_Data_4.xlsx')
+                fn = (r'uploads\Organ_'+u+'_Data_4.xlsx')
+                s.e_file = fn
+                s.save()
+        else:
+            print("Password does not match")
+        return redirect('/')
+    else:
+        return render(request, 'accounts/register_corp.html')
+
+# Organization Login
+
+def org_login_view(request):
+    if request.method=='POST':
+        username = request.POST['username']
+        password1 = request.POST['password1']
+
+        user = auth.authenticate(username=username, password = password1)
+
+        if user is not None:
+            auth.login(request, user)
+            return redirect('/')
+
+        else:
+            print("Error")
+            return redirect('')
+    return render(request, 'accounts/login_corp.html')
+
+def indiv_pdf_view(request):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font('Arial', size=12)
+    pdf.cell(200,10, txt='Welcome to Budget Tracker!', ln=1, align='C')
+    pdf.output('simple_demo.pdf')
+    return render(request, 'accounts/indiv_pdf.html')
